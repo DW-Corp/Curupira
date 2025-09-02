@@ -9,7 +9,7 @@ use axum::{
     response::Json,
     Form,
 };
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use base64::Engine; // Required for decode method on base64 engines
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tracing::{error, info, warn};

@@ -1,6 +1,6 @@
 use crate::db::models::{JwksResponse, OAuthError};
 use crate::db::{queries, Database};
-use axum::{extract::State, http::StatusCode, response::Json, Extension};
+use axum::{extract::State, http::StatusCode, response::Json};
 use tracing::{error, info};
 
 /// GET /.well-known/jwks.json
@@ -54,7 +54,7 @@ async fn get_jwks(db: &Database) -> anyhow::Result<JwksResponse> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use uuid::Uuid;
+    // uuid::Uuid import removed as it's unused in tests
 
     #[tokio::test]
     async fn test_jwks_response_structure() {

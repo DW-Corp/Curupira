@@ -8,22 +8,23 @@ use crate::{
 // [library] Axum web framework components for HTTP handling
 use axum::{
     extract::{Query, State}, // [library] Request parameter extraction and application state
-    http::{StatusCode, Uri}, // [library] HTTP status codes and URI handling
-    response::{Html, Redirect}, // [library] HTTP response types
-    Extension,               // [library] Request extensions (middleware data)
+    http::StatusCode, // [library] HTTP status codes (Uri import removed as unused)
+    response::Html, // [library] HTTP response types (Redirect import removed as unused)
+    // Extension,               // [library] Request extensions (middleware data) - Unused import removed
 };
 
-// [library] Base64 encoding for PKCE parameter handling
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _}; // [security] URL-safe base64 without padding
+// [library] Base64 encoding for PKCE parameter handling (imports removed as unused)
+// use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _}; // [security] URL-safe base64 without padding
 
 // [library] Serde for JSON/form serialization and deserialization
 use serde::{Deserialize, Serialize};
 
-// [rust] Standard library collections for key-value data
-use std::collections::HashMap;
+// [rust] Standard library collections for key-value data (HashMap unused, commented out)
+// use std::collections::HashMap;
 
-// [library] Time handling for token expiration and timestamps
-use time::{Duration, OffsetDateTime};
+// [library] Time handling for token expiration and timestamps (Duration unused, commented out)
+use time::OffsetDateTime;
+// use time::Duration;
 
 // [library] Cookie management for session handling
 use tower_cookies::Cookies;
@@ -35,7 +36,7 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 // [business] OAuth2 authorization request parameters - RFC 6749 + RFC 7636 (PKCE) compliant
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct AuthorizeParams {
     pub client_id: Uuid, // [business] OAuth2 client identifier - registered application ID
     pub redirect_uri: String, // [security] Where to redirect after authorization - must be pre-registered
@@ -77,7 +78,7 @@ pub struct ConsentPageData {
 pub async fn authorize_handler(
     Query(params): Query<AuthorizeParams>, // [library] Extract query parameters from URL
     State(db): State<Database>,            // [library] Inject database connection pool
-    State(config): State<Config>,          // [library] Inject application configuration
+    State(_config): State<Config>,          // [library] Inject application configuration
     cookies: Cookies, // [library] Access to HTTP cookies for session management
 ) -> Result<Html<String>, (StatusCode, Html<String>)> {
     // [rust] Result type for error handling
@@ -141,7 +142,7 @@ pub async fn authorize_handler(
             Ok(Some(session)) if session.user_id.is_some() => {
                 // [business] Session is authenticated - extract user and tenant IDs
                 let user_id = session.user_id.unwrap(); // [rust] Safe unwrap due to is_some() check
-                let tenant_id = session.tenant_id.unwrap(); // [rust] Tenant always set when user is set
+                let _tenant_id = session.tenant_id.unwrap(); // [rust] Tenant always set when user is set
 
                 match queries::get_user_by_id(&db, &user_id).await {
                     Ok(Some(user)) => {
@@ -174,7 +175,7 @@ pub async fn authorize_handler(
         )));
     }
 
-    let user = user.unwrap();
+    let _user = user.unwrap();
     let tenant = tenant.unwrap_or(Tenant {
         id: app.tenant_id,
         slug: "unknown".to_string(),

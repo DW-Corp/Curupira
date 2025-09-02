@@ -13,10 +13,10 @@ use josekit::{
 
 // [library] JSON serialization for JWT claims and responses
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value}; // [library] JSON value manipulation
+use serde_json::Value; // [library] JSON value manipulation (json import removed as unused)
 
-// [rust] Standard library collections for key-value data
-use std::collections::HashMap;
+// [rust] Standard library collections for key-value data (HashMap unused, commented out)
+// use std::collections::HashMap;
 
 // [library] Time handling for token expiration and timestamps
 use time::{Duration, OffsetDateTime};

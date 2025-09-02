@@ -87,10 +87,11 @@ async fn health_check() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
-    use axum::http::StatusCode;
-    use std::sync::Arc;
-    use tower::ServiceExt; // [library] Tower service trait extensions
+    // Unused imports removed - tests only need basic functionality currently
+    // use crate::config::Config;
+    // use axum::http::StatusCode;
+    // use std::sync::Arc;
+    // Removed unused tower::ServiceExt import - tests don't require it currently
 
     #[tokio::test]
     async fn test_health_check() {

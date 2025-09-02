@@ -303,7 +303,7 @@ async fn test_user_creation() {
 
 3. **Testing Changes**
    ```bash
-   cargo test                    # Unit tests
+   cargo test                    # Run all tests
    cargo clippy                  # Rust linter for code quality
    cargo fmt                     # Rust code formatter
    cargo run --bin curupira      # Manual testing
@@ -317,6 +317,186 @@ async fn test_user_creation() {
    git add .sqlx/              # Include in commit
    cargo test                  # Final test run
    ```
+
+## 🧪 Testing Guide
+
+### Running Tests
+
+#### Basic Test Commands
+
+```bash
+# Run all tests
+cargo test
+
+# Run tests with output (shows println! and debug output)
+cargo test -- --nocapture
+
+# Run tests quietly (only show summary)
+cargo test --quiet
+
+# Run specific test by name
+cargo test test_generate_keypair
+
+# Run all tests in a specific module
+cargo test keygen::tests
+
+# Run all tests in a file/module path
+cargo test oauth::authorize::tests
+```
+
+#### Advanced Test Filtering
+
+```bash
+# Run tests matching a pattern
+cargo test password  # Runs all tests with 'password' in the name
+
+# Run tests in specific binary (if you have multiple binaries)
+cargo test --bin curupira
+
+# Run only documentation tests
+cargo test --doc
+
+# Run tests and build in release mode (faster execution)
+cargo test --release
+```
+
+#### Test-Specific Examples
+
+```bash
+# Run the keygen test specifically
+cargo test keygen::tests::test_generate_keypair
+
+# Run all OAuth2 authorization tests
+cargo test oauth::authorize::tests
+
+# Run all security-related tests
+cargo test security::
+
+# Run password hashing tests
+cargo test security::password::tests
+
+# Run web route tests
+cargo test web::routes::tests
+```
+
+#### Running Tests with Database
+
+Some tests may require database setup:
+
+```bash
+# Start test database
+docker-compose up -d postgres
+
+# Run database-dependent tests
+DATABASE_URL=postgres://postgres:changeme@localhost:5432/authdb cargo test
+
+# Run tests with specific test database
+TEST_DATABASE_URL=postgres://postgres:changeme@localhost:5432/authdb_test cargo test
+```
+
+#### Test Output and Debugging
+
+```bash
+# Show all output including println! statements
+cargo test -- --nocapture
+
+# Show test execution details
+cargo test -- --nocapture --test-threads=1
+
+# Run tests with environment variable for debugging
+RUST_LOG=debug cargo test -- --nocapture
+
+# Run with backtraces on test failures
+RUST_BACKTRACE=1 cargo test
+
+# Run with full backtraces
+RUST_BACKTRACE=full cargo test
+```
+
+#### Continuous Testing During Development
+
+```bash
+# Install cargo-watch for automatic test running
+cargo install cargo-watch
+
+# Run tests automatically when files change
+cargo watch -x test
+
+# Run specific test on file changes
+cargo watch -x "test keygen::tests::test_generate_keypair"
+
+# Run tests and clear screen each time
+cargo watch -c -x test
+```
+
+#### Performance and Parallel Testing
+
+```bash
+# Run tests in single thread (useful for debugging)
+cargo test -- --test-threads=1
+
+# Run tests with specific number of threads
+cargo test -- --test-threads=4
+
+# Measure test execution time
+time cargo test
+
+# Run ignored tests (if any are marked with #[ignore])
+cargo test -- --ignored
+
+# Run both normal and ignored tests
+cargo test -- --include-ignored
+```
+
+### Writing and Organizing Tests
+
+#### Test Structure in Curupira
+
+```rust
+// Unit tests (in src files)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_function_name() {
+        // Test implementation
+    }
+
+    #[tokio::test]  // For async tests
+    async fn test_async_function() {
+        // Async test implementation
+    }
+}
+```
+
+#### Integration Test Examples
+
+```rust
+// Integration tests (in tests/ directory)
+#[tokio::test]
+async fn test_oauth_flow() {
+    // Full OAuth2 flow test
+}
+
+#[test]
+fn test_configuration_loading() {
+    // Test config from environment
+}
+```
+
+### Test Coverage
+
+```bash
+# Install cargo-tarpaulin for coverage
+cargo install cargo-tarpaulin
+
+# Generate test coverage report
+cargo tarpaulin --out Html
+
+# Generate coverage and open in browser
+cargo tarpaulin --out Html && open tarpaulin-report.html
+```
 
 ### Team Development
 

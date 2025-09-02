@@ -1,5 +1,5 @@
 use crate::{
-    config::Config,
+    // config::Config, // Unused import removed
     db::{models::*, queries, Database},
     security::{generate_random_token, password::hash_password},
     web::login::LoginParams,
@@ -16,7 +16,7 @@ use tower_cookies::{Cookie, Cookies};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct RegisterForm {
     pub email: String,
     pub password: String,

@@ -4,8 +4,9 @@ pub mod queries; // Database query implementations and business logic
 
 // [rust] Re-export all public items from child modules for easier imports
 // This creates a "facade" pattern - external code can import from db:: instead of db::models::
-pub use models::*;
-pub use queries::*;
+// Note: Re-exports commented out as they are currently unused
+// pub use models::*;
+// pub use queries::*;
 
 // [library] SQLx - Rust SQL toolkit with async support and compile-time checked queries
 use sqlx::{PgPool, Pool, Postgres}; // PostgreSQL connection pool types

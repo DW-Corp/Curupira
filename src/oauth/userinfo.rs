@@ -23,7 +23,7 @@ pub async fn userinfo_handler(
     let access_token = extract_bearer_token(&headers)?;
 
     // Decode and verify the JWT access token
-    let (claims, app) = verify_access_token(&db, &config, &access_token).await?;
+    let (claims, _app) = verify_access_token(&db, &config, &access_token).await?;
 
     // Load user information
     let user_id = claims.sub.parse().map_err(|_| {

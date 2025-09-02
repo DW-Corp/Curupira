@@ -67,6 +67,7 @@ mod tests {
                 "postgres://user:pass@localhost:5432/db".to_string(),
             ),
             cookie_domain: ".example.com".to_string(),
+            allowed_origins: vec!["https://example.com".to_string()],
             session_secret: secrecy::Secret::new("secret".to_string()),
             default_access_ttl_secs: 3600,
             default_refresh_ttl_mins: 43200,

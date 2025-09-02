@@ -25,8 +25,8 @@ use axum::http::{
 use config::Config; // Application configuration management
 use db::create_pool; // Database connection pool factory
 
-// [rust] Standard library Duration type for representing time spans
-use std::time::Duration;
+// [rust] Standard library Duration type for representing time spans (unused, commented out)
+// use std::time::Duration;
 
 // [library] Tower ecosystem - middleware and service abstractions for HTTP servers
 use tower_http::{
@@ -35,7 +35,7 @@ use tower_http::{
 };
 
 // [library] Structured logging framework - provides hierarchical, contextual logging
-use tracing::{info, level_filters::LevelFilter}; // Logging macros and level filtering
+use tracing::info; // Logging macros (LevelFilter unused, removed)
 use tracing_subscriber::{EnvFilter, FmtSubscriber}; // Log formatting and environment-based filtering
 
 // [rust] Attribute macro that transforms this function to run in tokio's async runtime

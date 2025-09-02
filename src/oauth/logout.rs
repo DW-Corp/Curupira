@@ -1,11 +1,11 @@
 use crate::{
-    db::models::OAuthError,
+    // db::models::OAuthError, // Unused import removed
     db::{queries, Database},
 };
 use axum::{
     extract::{Query, State},
     http::StatusCode,
-    response::{Html, Redirect},
+    response::Html, // Redirect import removed as unused
 };
 use serde::Deserialize;
 use tower_cookies::{Cookie, Cookies};

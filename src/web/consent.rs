@@ -1,7 +1,7 @@
 use crate::{
     config::Config,
-    db::{models::*, queries, Database},
-    security::generate_random_token,
+    db::{queries, Database}, // models::* import removed as unused
+    // security::generate_random_token, // Unused import removed
 };
 use axum::{extract::State, http::StatusCode, response::Html, Form};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
@@ -27,7 +27,7 @@ pub struct ConsentForm {
 /// POST /consent - Handle consent form submission
 pub async fn consent_handler(
     State(db): State<Database>,
-    State(config): State<Config>,
+    State(_config): State<Config>,
     cookies: Cookies,
     Form(form): Form<ConsentForm>,
 ) -> Result<Html<String>, (StatusCode, Html<String>)> {
