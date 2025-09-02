@@ -1,0 +1,54 @@
+# Rust/Cargo build outputs
+/target/
+# Note: Cargo.lock is committed for applications (like this OAuth2 server)
+# but should be ignored for libraries. See: https://doc.rust-lang.org/cargo/faq.html#why-do-binaries-have-cargolock-in-version-control-but-not-libraries
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files and debugging
+*.log
+/cursor/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+
+# Backup files
+*.bak
+*.backup
+
+# Test coverage
+/coverage/
+lcov.info
+
+# Documentation generated files
+/docs/target/
+
+# Local development files
+/local/

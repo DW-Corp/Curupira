@@ -1,0 +1,67 @@
+[package]
+name = "curupira"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# HTTP Server & Web Framework
+axum = { version = "0.7", features = ["macros", "multipart"] }
+tower = "0.4"
+tower-cookies = "0.10"
+tower-http = { version = "0.5", features = ["cors", "fs", "trace", "timeout"] }
+tokio = { version = "1", features = ["full"] }
+
+# Leptos for SSR UI
+leptos = { version = "0.6", features = ["ssr"] }
+leptos_axum = { version = "0.6" }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "macros", "migrate", "uuid", "time", "json"] }
+
+# Crypto & JWT
+josekit = "0.8"
+rand = "0.8"
+sha2 = "0.10"
+argon2 = "0.5"
+
+# OAuth2 (for potential federation)
+oauth2 = { version = "4.4", optional = true }
+
+# Serialization & Utilities
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+time = { version = "0.3", features = ["serde", "macros"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+url = "2.4"
+
+# Error Handling & Logging
+thiserror = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+password-hash = "0.5"
+
+# Configuration
+dotenvy = "0.15"
+
+# Async traits
+async-trait = "0.1"
+
+# Base64 & URL encoding
+base64 = "0.22"
+percent-encoding = "2.3"
+urlencoding = "2.1"
+
+# Additional utilities
+secrecy = { version = "0.8", features = ["serde"] }
+http = "1.0"
+
+[[bin]]
+name = "keygen"
+path = "src/keygen.rs"
+required-features = ["bin"]
+
+[features]
+default = []
+federation = ["oauth2"]
+bin = []
