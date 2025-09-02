@@ -495,4 +495,224 @@ mod tests {
         invalid_params.code_challenge_method = "plain".to_string();
         assert!(validate_authorize_params(&invalid_params).is_err());
     }
+
+    #[test]
+    fn test_validate_authorize_params_edge_cases() {
+        let base_params = AuthorizeParams {
+            client_id: Uuid::new_v4(),
+            redirect_uri: "https://example.com/callback".to_string(),
+            response_type: "code".to_string(),
+            scope: "openid email".to_string(),
+            state: Some("state123".to_string()),
+            code_challenge: "a".repeat(43),
+            code_challenge_method: "S256".to_string(),
+            nonce: Some("nonce123".to_string()),
+            prompt: None,
+        };
+
+        // Test unsupported response types
+        let unsupported_types = vec!["id_token", "token id_token", "code token", "invalid"];
+        for response_type in unsupported_types {
+            let mut params = base_params.clone();
+            params.response_type = response_type.to_string();
+            assert!(
+                validate_authorize_params(&params).is_err(),
+                "Should reject response_type: {}",
+                response_type
+            );
+        }
+
+        // Test unsupported PKCE methods
+        let unsupported_methods = vec!["plain", "sha256", "SHA256", "invalid", ""];
+        for method in unsupported_methods {
+            let mut params = base_params.clone();
+            params.code_challenge_method = method.to_string();
+            assert!(
+                validate_authorize_params(&params).is_err(),
+                "Should reject code_challenge_method: {}",
+                method
+            );
+        }
+
+        // Test invalid PKCE challenge lengths
+        let invalid_challenges = vec![
+            "".to_string(),                    // Empty
+            "short".to_string(),               // Too short
+            "a".repeat(42),                    // Just under minimum
+            "a".repeat(129),                   // Just over maximum
+            "a".repeat(200),                   // Way too long
+        ];
+        for challenge in invalid_challenges {
+            let mut params = base_params.clone();
+            params.code_challenge = challenge.clone();
+            assert!(
+                validate_authorize_params(&params).is_err(),
+                "Should reject code_challenge with length: {}",
+                challenge.len()
+            );
+        }
+
+        // Test valid edge case lengths
+        let valid_challenges = vec![
+            "a".repeat(43),  // Minimum valid length
+            "a".repeat(128), // Maximum valid length
+        ];
+        for challenge in valid_challenges {
+            let mut params = base_params.clone();
+            params.code_challenge = challenge;
+            assert!(validate_authorize_params(&params).is_ok());
+        }
+    }
+
+    #[test]
+    fn test_preserve_oauth_params() {
+        let params = AuthorizeParams {
+            client_id: Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap(),
+            redirect_uri: "https://example.com/callback?existing=param".to_string(),
+            response_type: "code".to_string(),
+            scope: "openid email profile".to_string(),
+            state: Some("csrf-protection-state".to_string()),
+            code_challenge: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk".to_string(),
+            code_challenge_method: "S256".to_string(),
+            nonce: Some("unique-nonce-123".to_string()),
+            prompt: Some("login".to_string()),
+        };
+
+        let query_string = preserve_oauth_params(&params);
+
+        // Check that all parameters are preserved (adjust URL encoding expectations)
+        assert!(query_string.contains("client_id=550e8400-e29b-41d4-a716-446655440000"));
+        assert!(query_string.contains("redirect_uri=https%3A%2F%2Fexample.com%2Fcallback%3Fexisting%3Dparam"));
+        assert!(query_string.contains("response_type=code"));
+        assert!(query_string.contains("scope=openid%20email%20profile"));
+        assert!(query_string.contains("state=csrf-protection-state"));
+        assert!(query_string.contains("code_challenge=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"));
+        assert!(query_string.contains("code_challenge_method=S256"));
+        assert!(query_string.contains("nonce=unique-nonce-123"));
+        assert!(query_string.contains("prompt=login"));
+
+        // Test with minimal parameters (no optional fields)
+        let minimal_params = AuthorizeParams {
+            client_id: Uuid::new_v4(),
+            redirect_uri: "https://example.com/callback".to_string(),
+            response_type: "code".to_string(),
+            scope: "openid".to_string(),
+            state: None,
+            code_challenge: "a".repeat(43),
+            code_challenge_method: "S256".to_string(),
+            nonce: None,
+            prompt: None,
+        };
+
+        let minimal_query = preserve_oauth_params(&minimal_params);
+        assert!(minimal_query.contains("client_id="));
+        assert!(minimal_query.contains("redirect_uri="));
+        assert!(minimal_query.contains("response_type=code"));
+        assert!(minimal_query.contains("scope=openid"));
+        assert!(minimal_query.contains("code_challenge="));
+        assert!(minimal_query.contains("code_challenge_method=S256"));
+        
+        // Should not contain optional parameters when None
+        assert!(!minimal_query.contains("state="));
+        assert!(!minimal_query.contains("nonce="));
+        assert!(!minimal_query.contains("prompt="));
+    }
+
+    #[test]
+    fn test_create_error_response() {
+        // Test basic error response
+        let (status, response) = create_error_response(
+            "https://example.com/callback",
+            "invalid_request",
+            "Missing required parameter",
+            None,
+        );
+
+        assert_eq!(status, StatusCode::FOUND);
+        let html = match response {
+            Html(html_content) => html_content,
+        };
+        assert!(html.contains("window.location.href"));
+        assert!(html.contains("error=invalid_request"));
+        assert!(html.contains("error_description=Missing%20required%20parameter"));
+
+        // Test error response with state parameter
+        let (_, response) = create_error_response(
+            "https://example.com/callback",
+            "unauthorized_client", 
+            "Client not authorized",
+            Some("csrf-state-123"),
+        );
+
+        let html = match response {
+            Html(html_content) => html_content,
+        };
+        assert!(html.contains("error=unauthorized_client"));
+        assert!(html.contains("state=csrf-state-123"));
+
+        // Test with special characters in description (URL encoding)
+        let (_, response) = create_error_response(
+            "https://example.com/callback",
+            "invalid_scope",
+            "Invalid scope: 'admin & user'",
+            Some("state with spaces"),
+        );
+
+        let html = match response {
+            Html(html_content) => html_content,
+        };
+        assert!(html.contains("error_description=Invalid%20scope%3A%20%27admin%20%26%20user%27"));
+        assert!(html.contains("state=state%20with%20spaces"));
+    }
+
+    #[test] 
+    fn test_consent_page_data_serialization() {
+        let consent_data = ConsentPageData {
+            app_name: "Test Application".to_string(),
+            tenant_name: "Test Tenant".to_string(),
+            scopes: vec!["openid".to_string(), "email".to_string(), "profile".to_string()],
+            client_id: "550e8400-e29b-41d4-a716-446655440000".to_string(),
+            redirect_uri: "https://example.com/callback".to_string(),
+            state: Some("csrf-token".to_string()),
+            code_challenge: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk".to_string(),
+            code_challenge_method: "S256".to_string(),
+            nonce: Some("unique-nonce".to_string()),
+            csrf_token: "csrf-protection-token".to_string(),
+        };
+
+        let html = render_consent_page(&consent_data);
+
+        // Check that all data is properly rendered
+        assert!(html.contains("Test Application"));
+        assert!(html.contains("Test Tenant"));
+        assert!(html.contains("Identity information")); // openid scope
+        assert!(html.contains("Email address"));        // email scope  
+        assert!(html.contains("Profile information"));  // profile scope
+        assert!(html.contains("550e8400-e29b-41d4-a716-446655440000"));
+        assert!(html.contains("https://example.com/callback"));
+        assert!(html.contains("csrf-token"));
+        assert!(html.contains("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"));
+        assert!(html.contains("S256"));
+        assert!(html.contains("unique-nonce"));
+        assert!(html.contains("csrf-protection-token"));
+
+        // Test with empty optional fields
+        let minimal_data = ConsentPageData {
+            app_name: "Minimal App".to_string(),
+            tenant_name: "Minimal Tenant".to_string(), 
+            scopes: vec!["openid".to_string()],
+            client_id: Uuid::new_v4().to_string(),
+            redirect_uri: "https://minimal.com/callback".to_string(),
+            state: None,
+            code_challenge: "a".repeat(43),
+            code_challenge_method: "S256".to_string(),
+            nonce: None,
+            csrf_token: "csrf123".to_string(),
+        };
+
+        let minimal_html = render_consent_page(&minimal_data);
+        assert!(minimal_html.contains("Minimal App"));
+        assert!(minimal_html.contains("Identity information"));
+        assert!(!minimal_html.contains("Email address")); // Should not contain email scope
+    }
 }

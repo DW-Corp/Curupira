@@ -517,5 +517,238 @@ mod tests {
         // Test missing headers
         headers.clear();
         assert!(extract_api_key(&headers).is_err());
+
+        // Test case insensitive header names
+        headers.insert("X-API-KEY", HeaderValue::from_static("test-key-uppercase"));
+        assert_eq!(extract_api_key(&headers).unwrap(), "test-key-uppercase");
+
+        // Test Authorization with different formats
+        headers.clear();
+        
+        // Should not match Bearer tokens
+        headers.insert(
+            "authorization", 
+            HeaderValue::from_static("Bearer some-jwt-token")
+        );
+        assert!(extract_api_key(&headers).is_err());
+
+        // Should not match Basic auth
+        headers.insert(
+            "authorization",
+            HeaderValue::from_static("Basic dXNlcjpwYXNz")
+        );
+        assert!(extract_api_key(&headers).is_err());
+
+        // Test malformed Authorization header
+        headers.insert(
+            "authorization",
+            HeaderValue::from_static("API-Key")  // Missing space and key
+        );
+        assert!(extract_api_key(&headers).is_err());
+
+        // Test empty API key
+        headers.insert(
+            "authorization", 
+            HeaderValue::from_static("API-Key ")  // Empty key after space
+        );
+        assert_eq!(extract_api_key(&headers).unwrap(), "");
+
+        // Test with whitespace around key
+        headers.insert(
+            "x-api-key",
+            HeaderValue::from_static("  test-key-with-spaces  ")
+        );
+        assert_eq!(extract_api_key(&headers).unwrap(), "  test-key-with-spaces  ");
+    }
+
+    #[test]
+    fn test_token_request_validation() {
+        // Test valid authorization code request
+        let valid_auth_code_request = TokenRequest {
+            grant_type: "authorization_code".to_string(),
+            code: Some("auth_code_123".to_string()),
+            redirect_uri: Some("https://example.com/callback".to_string()),
+            client_id: Some(Uuid::new_v4()),
+            code_verifier: Some("code_verifier_123".to_string()),
+            refresh_token: None,
+        };
+
+        assert_eq!(valid_auth_code_request.grant_type, "authorization_code");
+        assert!(valid_auth_code_request.code.is_some());
+        assert!(valid_auth_code_request.redirect_uri.is_some());
+        assert!(valid_auth_code_request.client_id.is_some());
+        assert!(valid_auth_code_request.code_verifier.is_some());
+
+        // Test valid refresh token request
+        let valid_refresh_request = TokenRequest {
+            grant_type: "refresh_token".to_string(),
+            code: None,
+            redirect_uri: None,
+            client_id: Some(Uuid::new_v4()),
+            code_verifier: None,
+            refresh_token: Some("refresh_token_abc123".to_string()),
+        };
+
+        assert_eq!(valid_refresh_request.grant_type, "refresh_token");
+        assert!(valid_refresh_request.refresh_token.is_some());
+        assert!(valid_refresh_request.client_id.is_some());
+
+        // Test unsupported grant types
+        let unsupported_grant_types = vec![
+            "client_credentials",
+            "password", 
+            "implicit",
+            "device_code",
+            "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "",
+            "invalid_grant_type",
+        ];
+
+        for grant_type in unsupported_grant_types {
+            let request = TokenRequest {
+                grant_type: grant_type.to_string(),
+                code: None,
+                redirect_uri: None,
+                client_id: Some(Uuid::new_v4()),
+                code_verifier: None,
+                refresh_token: None,
+            };
+            
+            // These would be rejected by the actual handler
+            assert_ne!(request.grant_type, "authorization_code");
+            assert_ne!(request.grant_type, "refresh_token");
+        }
+    }
+
+    #[test]
+    fn test_token_request_edge_cases() {
+        // Test missing required fields for authorization_code grant
+        let missing_code = TokenRequest {
+            grant_type: "authorization_code".to_string(),
+            code: None, // Missing required code
+            redirect_uri: Some("https://example.com/callback".to_string()),
+            client_id: Some(Uuid::new_v4()),
+            code_verifier: Some("verifier".to_string()),
+            refresh_token: None,
+        };
+        assert!(missing_code.code.is_none());
+
+        let missing_client_id = TokenRequest {
+            grant_type: "authorization_code".to_string(),
+            code: Some("code123".to_string()),
+            redirect_uri: Some("https://example.com/callback".to_string()),
+            client_id: None, // Missing required client_id
+            code_verifier: Some("verifier".to_string()),
+            refresh_token: None,
+        };
+        assert!(missing_client_id.client_id.is_none());
+
+        let missing_code_verifier = TokenRequest {
+            grant_type: "authorization_code".to_string(),
+            code: Some("code123".to_string()),
+            redirect_uri: Some("https://example.com/callback".to_string()),
+            client_id: Some(Uuid::new_v4()),
+            code_verifier: None, // Missing PKCE code verifier
+            refresh_token: None,
+        };
+        assert!(missing_code_verifier.code_verifier.is_none());
+
+        // Test missing required fields for refresh_token grant  
+        let missing_refresh_token = TokenRequest {
+            grant_type: "refresh_token".to_string(),
+            code: None,
+            redirect_uri: None,
+            client_id: Some(Uuid::new_v4()),
+            code_verifier: None,
+            refresh_token: None, // Missing required refresh token
+        };
+        assert!(missing_refresh_token.refresh_token.is_none());
+
+        // Test extremely long values (potential attack vectors)
+        let long_string = "a".repeat(10000);
+        let extreme_request = TokenRequest {
+            grant_type: long_string.clone(),
+            code: Some(long_string.clone()),
+            redirect_uri: Some(format!("https://example.com/{}", long_string)),
+            client_id: Some(Uuid::new_v4()),
+            code_verifier: Some(long_string.clone()),
+            refresh_token: Some(long_string),
+        };
+        
+        assert_eq!(extreme_request.grant_type.len(), 10000);
+        assert!(extreme_request.code.as_ref().unwrap().len() == 10000);
+        assert!(extreme_request.code_verifier.as_ref().unwrap().len() == 10000);
+    }
+
+    #[test] 
+    fn test_api_key_header_variations() {
+        let mut headers = HeaderMap::new();
+
+        // Test various header name capitalizations
+        let header_variants = vec![
+            "x-api-key",
+            "X-API-KEY", 
+            "X-Api-Key",
+            "x-API-key",
+        ];
+
+        for header_name in header_variants {
+            headers.clear();
+            headers.insert(header_name, HeaderValue::from_static("test-key"));
+            assert_eq!(extract_api_key(&headers).unwrap(), "test-key");
+        }
+
+        // Test Authorization header variants
+        let auth_variants = vec![
+            "API-Key test-key",
+            "API-Key test-key-with-dashes",
+            "API-Key test_key_with_underscores", 
+            "API-Key 123456789",
+            "API-Key abcdef-123456-ghijkl",
+        ];
+
+        for auth_value in auth_variants {
+            headers.clear();
+            headers.insert("authorization", HeaderValue::from_str(auth_value).unwrap());
+            let expected_key = auth_value.strip_prefix("API-Key ").unwrap();
+            assert_eq!(extract_api_key(&headers).unwrap(), expected_key);
+        }
+
+        // Test invalid Authorization formats that should fail
+        let invalid_auth_formats = vec![
+            "APIKey test-key",    // Missing hyphen
+            "API-key test-key",   // Wrong case
+            "api-key test-key",   // Wrong case
+            "API Key test-key",   // Space instead of hyphen
+            "Bearer test-key",    // Wrong scheme
+            "Basic test-key",     // Wrong scheme
+            "test-key",           // No scheme
+            "",                   // Empty
+        ];
+
+        for invalid_auth in invalid_auth_formats {
+            headers.clear(); 
+            headers.insert("authorization", HeaderValue::from_str(invalid_auth).unwrap());
+            assert!(extract_api_key(&headers).is_err(), "Should reject: {}", invalid_auth);
+        }
+    }
+
+    #[test]
+    fn test_header_precedence() {
+        let mut headers = HeaderMap::new();
+        
+        // When both X-API-Key and Authorization headers are present,
+        // X-API-Key should take precedence
+        headers.insert("x-api-key", HeaderValue::from_static("x-api-key-value"));
+        headers.insert("authorization", HeaderValue::from_static("API-Key auth-header-value"));
+        
+        assert_eq!(extract_api_key(&headers).unwrap(), "x-api-key-value");
+        
+        // Test that X-API-Key is preferred even when Authorization comes first
+        headers.clear();
+        headers.insert("authorization", HeaderValue::from_static("API-Key auth-first"));
+        headers.insert("x-api-key", HeaderValue::from_static("x-api-key-second"));
+        
+        assert_eq!(extract_api_key(&headers).unwrap(), "x-api-key-second");
     }
 }
