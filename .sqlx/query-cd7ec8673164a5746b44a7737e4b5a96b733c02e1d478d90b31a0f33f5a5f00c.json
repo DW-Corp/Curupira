@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.name \n         FROM user_roles ur \n         JOIN roles r ON ur.role_id = r.id \n         JOIN application_roles ar ON r.id = ar.role_id \n         WHERE ur.user_id = $1 AND ar.application_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cd7ec8673164a5746b44a7737e4b5a96b733c02e1d478d90b31a0f33f5a5f00c"
+}
