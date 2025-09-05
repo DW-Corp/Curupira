@@ -50,6 +50,9 @@ jobs:
 
       - name: Run database migrations
         run: |
+          # Debug: verificar variáveis de ambiente
+          echo "DATABASE_URL=$DATABASE_URL"
+          cat .env | grep DATABASE_URL
           # Instalar SQLx CLI
           cargo install sqlx-cli --no-default-features --features postgres
           # Rodar migrações
