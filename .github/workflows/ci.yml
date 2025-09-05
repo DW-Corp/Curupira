@@ -62,7 +62,9 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Run Clippy
-        run: cargo clippy --bins
+        run: |
+          echo "Running Clippy..."
+          cargo clippy --bins --verbose
 
       - name: Run tests
         run: echo "Tests skipped for CI learning - will enable later"
