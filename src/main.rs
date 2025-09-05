@@ -89,7 +89,7 @@ async fn main() -> Result<()> {
             CorsLayer::new()
                 .allow_origin(allowed_origins) // [security] Specific origins required for credentialed requests
                 .allow_methods([Method::GET, Method::POST, Method::OPTIONS]) // [business] OAuth2 required methods
-                .allow_headers([ACCEPT, AUTHORIZATION, CONTENT_TYPE]) // [business] OAuth2 required headers  
+                .allow_headers([ACCEPT, AUTHORIZATION, CONTENT_TYPE]) // [business] OAuth2 required headers
                 .allow_credentials(true), // [security] Enable cookies/authorization headers for session management
         )
         .layer(

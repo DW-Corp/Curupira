@@ -1,6 +1,28 @@
 version: "3.5"
 
 services:
+  curupira:
+    container_name: curupira
+    image: dwcorp/curupira:latest
+    environment:
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8080
+      - ISSUER=${ISSUER:-http://localhost:8080}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-authdb}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.dwcorp.com.br}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - DEFAULT_ACCESS_TTL_SECS=${DEFAULT_ACCESS_TTL_SECS:-3600}
+      - DEFAULT_REFRESH_TTL_MINS=${DEFAULT_REFRESH_TTL_MINS:-43200}
+      - REQUIRE_API_KEY=${REQUIRE_API_KEY:-true}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    networks:
+      - postgres
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     container_name: postgres_container
     image: postgres:15

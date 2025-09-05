@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+env:
+  CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: authdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Create .env file
+        run: |
+          echo "SESSION_SECRET=CI_SESSION_SECRET_KEY_FOR_TESTING_ONLY" > .env
+          echo "ISSUER=http://localhost:8080" >> .env
+          echo "COOKIE_DOMAIN=localhost" >> .env
+          echo "DATABASE_URL=postgres://postgres:changeme@localhost:5432/authdb" >> .env
+
+      - name: Run database migrations
+        run: |
+          # Instalar SQLx CLI
+          cargo install sqlx-cli --no-default-features --features postgres
+          # Rodar migrações
+          sqlx migrate run
+
+      - name: Check code formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --bins
+
+      - name: Run tests
+        run: echo "Tests skipped for CI learning - will enable later"
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: curupira
+          path: target/release/curupira

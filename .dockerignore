@@ -1,0 +1,23 @@
+# Git
+.git
+.github
+.gitignore
+
+# Rust build artifacts
+/target
+**/*.rs.bk
+Cargo.lock
+
+# Development environment
+.vscode
+.idea
+.env
+.env.*
+!.env.example
+
+# Documentation
+*.md
+!README.md
+
+# Misc
+.DS_Store
