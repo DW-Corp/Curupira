@@ -361,7 +361,9 @@ mod tests {
 
     // Helper function to create test database connection
     async fn create_test_db() -> Result<Database> {
-        crate::db::create_pool(&test_database_url()).await.map_err(|e| anyhow::anyhow!(e))
+        crate::db::create_pool(&test_database_url())
+            .await
+            .map_err(|e| anyhow::anyhow!(e))
     }
 
     #[tokio::test]
@@ -385,7 +387,10 @@ mod tests {
         let random_uuid = Uuid::new_v4();
         let result = get_user_by_id(&db, &random_uuid).await;
         assert!(result.is_ok(), "Should handle non-existent UUID gracefully");
-        assert!(result.unwrap().is_none(), "Non-existent UUID should return None");
+        assert!(
+            result.unwrap().is_none(),
+            "Non-existent UUID should return None"
+        );
     }
 
     #[tokio::test]
@@ -402,7 +407,10 @@ mod tests {
         let very_long_slug = "a".repeat(10000);
         let result = get_tenant_by_slug(&db, &very_long_slug).await;
         assert!(result.is_ok(), "Should handle very long slug gracefully");
-        assert!(result.unwrap().is_none(), "Very long slug should return None");
+        assert!(
+            result.unwrap().is_none(),
+            "Very long slug should return None"
+        );
 
         // Test slug with special characters
         let special_slug = "test\0slug\n\r\t";
@@ -439,15 +447,26 @@ mod tests {
 
         for injection_attempt in sql_injection_attempts {
             let result = get_tenant_by_slug(&db, injection_attempt).await;
-            assert!(result.is_ok(), "Should prevent SQL injection: {}", injection_attempt);
-            assert!(result.unwrap().is_none(), "SQL injection should return None");
+            assert!(
+                result.is_ok(),
+                "Should prevent SQL injection: {}",
+                injection_attempt
+            );
+            assert!(
+                result.unwrap().is_none(),
+                "SQL injection should return None"
+            );
         }
 
         // Test SQL injection in email parameter
         let random_tenant_id = Uuid::new_v4();
         for injection_attempt in &["'; DROP TABLE users; --", "' OR '1'='1"] {
             let result = get_user_by_email(&db, &random_tenant_id, injection_attempt).await;
-            assert!(result.is_ok(), "Should prevent SQL injection in email: {}", injection_attempt);
+            assert!(
+                result.is_ok(),
+                "Should prevent SQL injection in email: {}",
+                injection_attempt
+            );
         }
     }
 
@@ -465,9 +484,7 @@ mod tests {
         let handles = (0..10).map(|i| {
             let db_clone = db.clone();
             let slug = format!("concurrent_test_{}", i);
-            tokio::spawn(async move {
-                get_tenant_by_slug(&db_clone, &slug).await
-            })
+            tokio::spawn(async move { get_tenant_by_slug(&db_clone, &slug).await })
         });
 
         // Wait for all concurrent operations to complete
@@ -489,11 +506,11 @@ mod tests {
 
         // Test Unicode characters in various parameters
         let unicode_test_cases = vec![
-            "тест",           // Cyrillic
-            "测试",            // Chinese
-            "テスト",          // Japanese
-            "🔒🛡️💻",         // Emojis
-            "café_münüs",      // Accented characters
+            "тест",             // Cyrillic
+            "测试",             // Chinese
+            "テスト",           // Japanese
+            "🔒🛡️💻",           // Emojis
+            "café_münüs",       // Accented characters
             "test\u{0000}null", // Null byte
             "test\u{FFFF}max",  // High Unicode
         ];
@@ -546,12 +563,16 @@ mod tests {
             Some("test_nonce"),
             None, // state
             far_past,
-        ).await;
-        
+        )
+        .await;
+
         // Auth code creation might fail due to expiry check, that's expected
         if result.is_ok() {
             let retrieved = get_auth_code(&db, auth_code).await;
-            assert!(retrieved.is_ok(), "Should handle expired auth codes gracefully");
+            assert!(
+                retrieved.is_ok(),
+                "Should handle expired auth codes gracefully"
+            );
         }
     }
 
@@ -567,18 +588,30 @@ mod tests {
 
         // Test cleanup functions handle empty tables gracefully
         let result1 = cleanup_expired_auth_codes(&db).await;
-        assert!(result1.is_ok(), "Cleanup auth codes should succeed even with empty table");
+        assert!(
+            result1.is_ok(),
+            "Cleanup auth codes should succeed even with empty table"
+        );
 
         let result2 = cleanup_expired_refresh_tokens(&db).await;
-        assert!(result2.is_ok(), "Cleanup refresh tokens should succeed even with empty table");
+        assert!(
+            result2.is_ok(),
+            "Cleanup refresh tokens should succeed even with empty table"
+        );
 
         let result3 = cleanup_expired_sessions(&db).await;
-        assert!(result3.is_ok(), "Cleanup sessions should succeed even with empty table");
+        assert!(
+            result3.is_ok(),
+            "Cleanup sessions should succeed even with empty table"
+        );
 
         // Test multiple consecutive cleanups
         for _ in 0..3 {
             let result = cleanup_expired_sessions(&db).await;
-            assert!(result.is_ok(), "Multiple consecutive cleanups should succeed");
+            assert!(
+                result.is_ok(),
+                "Multiple consecutive cleanups should succeed"
+            );
         }
     }
 
@@ -593,7 +626,7 @@ mod tests {
         };
 
         // Test minimum and maximum valid values
-        
+
         // Minimum length strings
         let min_slug = "a";
         let result = get_tenant_by_slug(&db, min_slug).await;
@@ -627,7 +660,7 @@ mod tests {
 
         // Test various malformed inputs that might cause issues
         let malformed_inputs = vec![
-            "\x00\x01\x02\x03", // Binary data
+            "\x00\x01\x02\x03",  // Binary data
             "test\r\ninjection", // CRLF injection attempt
             "test\x1b[31mcolor", // ANSI escape sequences
             "test\u{202E}rtl",   // Right-to-left override
@@ -637,7 +670,11 @@ mod tests {
 
         for malformed_input in malformed_inputs {
             let result = get_tenant_by_slug(&db, malformed_input).await;
-            assert!(result.is_ok(), "Should handle malformed input: {:?}", malformed_input);
+            assert!(
+                result.is_ok(),
+                "Should handle malformed input: {:?}",
+                malformed_input
+            );
         }
     }
 
@@ -673,7 +710,8 @@ mod tests {
             Some("nonce1"),
             None, // state
             expires_at,
-        ).await;
+        )
+        .await;
 
         if result1.is_ok() {
             let scope2 = vec!["openid".to_string(), "profile".to_string()];
@@ -691,7 +729,8 @@ mod tests {
                 Some("nonce2"),
                 None, // state
                 expires_at,
-            ).await;
+            )
+            .await;
 
             // Either it should fail (constraint violation) or succeed (depending on implementation)
             // In either case, it shouldn't crash the application
@@ -708,13 +747,17 @@ mod tests {
         let invalid_urls = vec![
             "postgres://invalid:user@nonexistent:5432/db",
             "postgresql://user:pass@127.0.0.1:99999/db", // Invalid port
-            "postgres://user@:5432/db", // Missing host
+            "postgres://user@:5432/db",                  // Missing host
         ];
 
         for invalid_url in invalid_urls {
             let result = crate::db::create_pool(invalid_url).await;
             // Should fail gracefully, not panic
-            assert!(result.is_err(), "Should reject invalid database URL: {}", invalid_url);
+            assert!(
+                result.is_err(),
+                "Should reject invalid database URL: {}",
+                invalid_url
+            );
         }
     }
 }

@@ -2,7 +2,7 @@ use anyhow::Result;
 use base64::{engine::general_purpose::STANDARD, Engine as _}; // For encoding public key components in JWK
 use josekit::{
     jwk::alg::rsa::RsaKeyPair,
-    // jwk::Jwk, // Unused import removed  
+    // jwk::Jwk, // Unused import removed
     // jws::RS256, // Unused import removed
 };
 use serde_json::json;
@@ -23,7 +23,7 @@ pub fn generate_rsa_keypair(kid: Option<Uuid>) -> Result<(String, serde_json::Va
     let public_jwk_value = {
         // Get the public key components
         let public_der = key_pair.to_der_public_key();
-        
+
         // Create a minimal JWK for testing purposes
         // In a real implementation, you'd extract the RSA modulus (n) and exponent (e)
         json!({

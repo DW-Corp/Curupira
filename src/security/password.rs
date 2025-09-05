@@ -112,10 +112,12 @@ mod tests {
 
         // Test whitespace handling
         let whitespace_password = "  password with spaces  ";
-        let whitespace_hash = hash_password(whitespace_password).expect("Failed to hash whitespace");
+        let whitespace_hash =
+            hash_password(whitespace_password).expect("Failed to hash whitespace");
         assert!(verify_password(whitespace_password, &whitespace_hash).unwrap());
         assert!(!verify_password("password with spaces", &whitespace_hash).unwrap()); // No leading/trailing spaces
-        assert!(!verify_password("passwordwithspaces", &whitespace_hash).unwrap()); // No spaces at all
+        assert!(!verify_password("passwordwithspaces", &whitespace_hash).unwrap());
+        // No spaces at all
     }
 
     #[test]
@@ -125,11 +127,11 @@ mod tests {
 
         // Test common attack vectors
         let attack_vectors = vec![
-            "",                    // Empty password
-            "\0",                  // Null byte
-            "\n",                  // Newline
+            "",                   // Empty password
+            "\0",                 // Null byte
+            "\n",                 // Newline
             "\r\n",               // CRLF injection
-            "correct_password\0", // Null byte injection  
+            "correct_password\0", // Null byte injection
             "correct_password\n", // Newline injection
             "CORRECT_PASSWORD",   // Case sensitivity test
             "correct_password ",  // Trailing space
@@ -157,18 +159,22 @@ mod tests {
         let valid_hash = hash_password(password).expect("Failed to hash password");
 
         // Valid hash should start with Argon2id parameters
-        assert!(valid_hash.starts_with("$argon2id$"), "Hash should use Argon2id: {}", valid_hash);
+        assert!(
+            valid_hash.starts_with("$argon2id$"),
+            "Hash should use Argon2id: {}",
+            valid_hash
+        );
 
         // Test invalid hash formats
         let invalid_hashes = vec![
-            "",                           // Empty hash
-            "invalid_hash",               // Plain text
-            "$argon2$invalid$format",     // Wrong Argon2 variant
-            "$argon2id$",                 // Incomplete hash
+            "",                               // Empty hash
+            "invalid_hash",                   // Plain text
+            "$argon2$invalid$format",         // Wrong Argon2 variant
+            "$argon2id$",                     // Incomplete hash
             "$argon2id$v=19$m=4096$t=3$p=1$", // Missing salt and hash
-            "plain_text_password",        // Not hashed at all
-            "$2b$10$invalid_bcrypt_hash", // Different algorithm
-            "$1$invalid$md5hash",         // MD5 (insecure)
+            "plain_text_password",            // Not hashed at all
+            "$2b$10$invalid_bcrypt_hash",     // Different algorithm
+            "$1$invalid$md5hash",             // MD5 (insecure)
         ];
 
         for invalid_hash in invalid_hashes {
@@ -187,7 +193,7 @@ mod tests {
 
         // Test that verification takes similar time for valid and invalid passwords
         // This is a basic test - real timing attack testing requires more sophisticated approaches
-        
+
         use std::time::Instant;
 
         // Measure valid password verification
@@ -201,8 +207,14 @@ mod tests {
         let invalid_duration = start.elapsed();
 
         // Both should take some time (Argon2 is designed to be slow)
-        assert!(valid_duration.as_millis() > 0, "Valid password verification should take time");
-        assert!(invalid_duration.as_millis() > 0, "Invalid password verification should take time");
+        assert!(
+            valid_duration.as_millis() > 0,
+            "Valid password verification should take time"
+        );
+        assert!(
+            invalid_duration.as_millis() > 0,
+            "Invalid password verification should take time"
+        );
 
         // The ratio shouldn't be extreme (within 10x of each other)
         // Note: This is a very loose test, real timing attack resistance requires more analysis
@@ -211,7 +223,7 @@ mod tests {
         } else {
             invalid_duration.as_nanos() as f64 / valid_duration.as_nanos() as f64
         };
-        
+
         assert!(ratio < 10.0, "Timing difference too large: {}x", ratio);
     }
 
@@ -223,19 +235,18 @@ mod tests {
             ("123456", "Weak numeric"),
             ("password", "Common word"),
             ("qwerty", "Keyboard pattern"),
-            
             // Medium strength
             ("Password123", "Mixed case + numbers"),
             ("my_secure_pass", "Underscores and words"),
-            
             // Strong passwords
             ("MySecureP@ssw0rd!", "Mixed case, numbers, symbols"),
             ("correct horse battery staple", "Passphrase"),
             ("Tr0ub4dor&3", "XKCD style"),
-            
             // Very long passwords
-            ("This is a very long password that someone might actually use in real life", "Long passphrase"),
-            
+            (
+                "This is a very long password that someone might actually use in real life",
+                "Long passphrase",
+            ),
             // International characters
             ("强密码123", "Chinese characters"),
             ("пароль123", "Cyrillic"),
@@ -245,14 +256,14 @@ mod tests {
         for (password, description) in test_passwords {
             let hash = hash_password(password)
                 .expect(&format!("Failed to hash {}: {}", description, password));
-            
+
             assert!(
                 verify_password(password, &hash).unwrap(),
                 "Failed to verify {}: {}",
                 description,
                 password
             );
-            
+
             // Ensure other passwords don't work
             assert!(
                 !verify_password("wrong_password", &hash).unwrap(),

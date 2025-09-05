@@ -152,14 +152,14 @@ impl Config {
 mod tests {
     use super::*;
     use std::env;
-    use std::sync::Mutex;
-    use std::panic;
     use std::fs;
+    use std::panic;
+    use std::sync::Mutex;
 
     // Use a mutex to prevent concurrent test execution that could interfere with env vars
     static TEST_MUTEX: Mutex<()> = Mutex::new(());
 
-    fn with_clean_env<F>(test_fn: F) 
+    fn with_clean_env<F>(test_fn: F)
     where
         F: FnOnce(),
     {
@@ -171,7 +171,7 @@ mod tests {
                 poisoned.into_inner()
             }
         };
-        
+
         // Save current env vars we might modify
         let saved_vars = [
             ("APP_HOST", env::var("APP_HOST").ok()),
@@ -181,8 +181,14 @@ mod tests {
             ("COOKIE_DOMAIN", env::var("COOKIE_DOMAIN").ok()),
             ("ALLOWED_ORIGINS", env::var("ALLOWED_ORIGINS").ok()),
             ("SESSION_SECRET", env::var("SESSION_SECRET").ok()),
-            ("DEFAULT_ACCESS_TTL_SECS", env::var("DEFAULT_ACCESS_TTL_SECS").ok()),
-            ("DEFAULT_REFRESH_TTL_MINS", env::var("DEFAULT_REFRESH_TTL_MINS").ok()),
+            (
+                "DEFAULT_ACCESS_TTL_SECS",
+                env::var("DEFAULT_ACCESS_TTL_SECS").ok(),
+            ),
+            (
+                "DEFAULT_REFRESH_TTL_MINS",
+                env::var("DEFAULT_REFRESH_TTL_MINS").ok(),
+            ),
             ("REQUIRE_API_KEY", env::var("REQUIRE_API_KEY").ok()),
         ];
 
@@ -218,17 +224,17 @@ mod tests {
             if env_file_exists {
                 let _ = fs::rename(".env", ".env.backup");
             }
-            
+
             // Set only required environment variables
             env::set_var("SESSION_SECRET", "test_secret_for_testing_only");
-            
+
             let config = Config::from_env().expect("Failed to create config with defaults");
-            
+
             // Restore .env file if it existed
             if env_file_exists {
                 let _ = fs::rename(".env.backup", ".env");
             }
-            
+
             // Test default values (without .env file influence)
             assert_eq!(config.app_host, IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
             assert_eq!(config.app_port, 8080);
@@ -237,11 +243,13 @@ mod tests {
             assert_eq!(config.default_access_ttl_secs, 3600);
             assert_eq!(config.default_refresh_ttl_mins, 43200);
             assert_eq!(config.require_api_key, true);
-            
+
             // Test that allowed origins has defaults
             assert!(config.allowed_origins.len() > 0);
-            assert!(config.allowed_origins.contains(&"http://localhost:3000".to_string()));
-            
+            assert!(config
+                .allowed_origins
+                .contains(&"http://localhost:3000".to_string()));
+
             // Test helper methods
             assert_eq!(config.bind_address(), "0.0.0.0:8080");
             assert!(config.database_url().contains("postgres://"));
@@ -256,16 +264,22 @@ mod tests {
             env::set_var("APP_HOST", "127.0.0.1");
             env::set_var("APP_PORT", "9090");
             env::set_var("ISSUER", "https://custom.example.com");
-            env::set_var("DATABASE_URL", "postgres://custom:pass@custom:5432/customdb");
+            env::set_var(
+                "DATABASE_URL",
+                "postgres://custom:pass@custom:5432/customdb",
+            );
             env::set_var("COOKIE_DOMAIN", ".custom.example.com");
-            env::set_var("ALLOWED_ORIGINS", "https://app.example.com,https://admin.example.com");
+            env::set_var(
+                "ALLOWED_ORIGINS",
+                "https://app.example.com,https://admin.example.com",
+            );
             env::set_var("SESSION_SECRET", "custom_session_secret_for_testing");
             env::set_var("DEFAULT_ACCESS_TTL_SECS", "7200");
             env::set_var("DEFAULT_REFRESH_TTL_MINS", "86400");
             env::set_var("REQUIRE_API_KEY", "false");
-            
+
             let config = Config::from_env().expect("Failed to create config from env vars");
-            
+
             assert_eq!(config.app_host, IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
             assert_eq!(config.app_port, 9090);
             assert_eq!(config.issuer, "https://custom.example.com");
@@ -273,15 +287,24 @@ mod tests {
             assert_eq!(config.default_access_ttl_secs, 7200);
             assert_eq!(config.default_refresh_ttl_mins, 86400);
             assert_eq!(config.require_api_key, false);
-            
-            assert_eq!(config.allowed_origins, vec![
-                "https://app.example.com".to_string(),
-                "https://admin.example.com".to_string()
-            ]);
-            
+
+            assert_eq!(
+                config.allowed_origins,
+                vec![
+                    "https://app.example.com".to_string(),
+                    "https://admin.example.com".to_string()
+                ]
+            );
+
             assert_eq!(config.bind_address(), "127.0.0.1:9090");
-            assert_eq!(config.database_url(), "postgres://custom:pass@custom:5432/customdb");
-            assert_eq!(config.session_secret(), "custom_session_secret_for_testing".as_bytes());
+            assert_eq!(
+                config.database_url(),
+                "postgres://custom:pass@custom:5432/customdb"
+            );
+            assert_eq!(
+                config.session_secret(),
+                "custom_session_secret_for_testing".as_bytes()
+            );
         });
     }
 
@@ -294,20 +317,20 @@ mod tests {
             if env_file_exists {
                 let _ = std::fs::rename(".env", ".env.backup");
             }
-            
+
             // Ensure SESSION_SECRET is really not available
             env::remove_var("SESSION_SECRET");
-            
+
             let result = Config::from_env();
-            
+
             // Restore .env file if it existed
             if env_file_exists {
                 let _ = std::fs::rename(".env.backup", ".env");
             }
-            
+
             assert!(result.is_err(), "Should fail without SESSION_SECRET");
         });
-        
+
         with_clean_env(|| {
             // Test invalid IP addresses
             env::set_var("SESSION_SECRET", "test_secret");
@@ -315,7 +338,7 @@ mod tests {
             let config = Config::from_env().unwrap(); // Should fallback to default
             assert_eq!(config.app_host, IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
         });
-        
+
         with_clean_env(|| {
             // Test invalid port numbers
             env::set_var("SESSION_SECRET", "test_secret");
@@ -323,14 +346,14 @@ mod tests {
             let config = Config::from_env().unwrap(); // Should fallback to default
             assert_eq!(config.app_port, 8080);
         });
-        
+
         with_clean_env(|| {
             env::set_var("SESSION_SECRET", "test_secret");
             env::set_var("APP_PORT", "99999"); // Out of range
             let config = Config::from_env().unwrap(); // Should fallback to default
             assert_eq!(config.app_port, 8080);
         });
-        
+
         with_clean_env(|| {
             // Test invalid boolean values
             env::set_var("SESSION_SECRET", "test_secret");
@@ -338,12 +361,12 @@ mod tests {
             let config = Config::from_env().unwrap(); // Should fallback to default
             assert_eq!(config.require_api_key, true);
         });
-        
+
         with_clean_env(|| {
             // Test invalid integer values
             env::set_var("SESSION_SECRET", "test_secret");
             env::set_var("DEFAULT_ACCESS_TTL_SECS", "not_a_number");
-            let config = Config::from_env().unwrap(); // Should fallback to default  
+            let config = Config::from_env().unwrap(); // Should fallback to default
             assert_eq!(config.default_access_ttl_secs, 3600);
         });
     }
@@ -352,45 +375,50 @@ mod tests {
     fn test_allowed_origins_parsing() {
         with_clean_env(|| {
             env::set_var("SESSION_SECRET", "test_secret");
-            
+
             // Test single origin
             env::set_var("ALLOWED_ORIGINS", "https://single.example.com");
             let config = Config::from_env().unwrap();
             assert_eq!(config.allowed_origins, vec!["https://single.example.com"]);
         });
-        
+
         with_clean_env(|| {
             env::set_var("SESSION_SECRET", "test_secret");
-            
+
             // Test multiple origins with spaces
-            env::set_var("ALLOWED_ORIGINS", "https://app1.com, https://app2.com , https://app3.com");
+            env::set_var(
+                "ALLOWED_ORIGINS",
+                "https://app1.com, https://app2.com , https://app3.com",
+            );
             let config = Config::from_env().unwrap();
-            assert_eq!(config.allowed_origins, vec![
-                "https://app1.com",
-                "https://app2.com",
-                "https://app3.com"
-            ]);
+            assert_eq!(
+                config.allowed_origins,
+                vec!["https://app1.com", "https://app2.com", "https://app3.com"]
+            );
         });
-        
+
         with_clean_env(|| {
             env::set_var("SESSION_SECRET", "test_secret");
-            
+
             // Test empty string (should result in empty vector)
             env::set_var("ALLOWED_ORIGINS", "");
             let config = Config::from_env().unwrap();
             assert_eq!(config.allowed_origins, Vec::<String>::new());
         });
-        
+
         with_clean_env(|| {
             env::set_var("SESSION_SECRET", "test_secret");
-            
+
             // Test with empty entries (should be filtered out)
-            env::set_var("ALLOWED_ORIGINS", "https://valid.com,,https://also-valid.com,");
+            env::set_var(
+                "ALLOWED_ORIGINS",
+                "https://valid.com,,https://also-valid.com,",
+            );
             let config = Config::from_env().unwrap();
-            assert_eq!(config.allowed_origins, vec![
-                "https://valid.com",
-                "https://also-valid.com"
-            ]);
+            assert_eq!(
+                config.allowed_origins,
+                vec!["https://valid.com", "https://also-valid.com"]
+            );
         });
     }
 
@@ -399,13 +427,13 @@ mod tests {
         with_clean_env(|| {
             env::set_var("SESSION_SECRET", "test_secret");
             env::set_var("APP_HOST", "::1"); // IPv6 localhost
-            
+
             let config = Config::from_env().unwrap();
             assert_eq!(config.app_host, "::1".parse::<IpAddr>().unwrap());
             // Note: bind_address() currently returns simple format, not bracketed IPv6
             // This is intentional for simplicity in current implementation
             assert_eq!(config.bind_address(), "::1:8080");
-            
+
             // Test IPv6 with port
             env::set_var("APP_PORT", "8443");
             let config = Config::from_env().unwrap();
@@ -417,46 +445,49 @@ mod tests {
     fn test_security_requirements() {
         with_clean_env(|| {
             env::set_var("SESSION_SECRET", "test_secret");
-            
+
             let config = Config::from_env().unwrap();
-            
+
             // Session secret should be accessible as bytes
             let secret_bytes = config.session_secret();
             assert_eq!(secret_bytes, b"test_secret");
             assert!(secret_bytes.len() > 0);
-            
+
             // Database URL should be properly wrapped in Secret
             let db_url = config.database_url();
             assert!(db_url.starts_with("postgres://"));
-            
+
             // Session secret should not be debug-printable (security check)
             let config_debug = format!("{:?}", config);
-            assert!(!config_debug.contains("test_secret"), 
-                    "Session secret should not appear in debug output: {}", config_debug);
+            assert!(
+                !config_debug.contains("test_secret"),
+                "Session secret should not appear in debug output: {}",
+                config_debug
+            );
         });
     }
 
-    #[test] 
+    #[test]
     fn test_extreme_values() {
         with_clean_env(|| {
             env::set_var("SESSION_SECRET", "test_secret");
-            
+
             // Test extreme but valid values
             env::set_var("APP_PORT", "65535"); // Maximum valid port
             env::set_var("DEFAULT_ACCESS_TTL_SECS", "86400"); // 24 hours
             env::set_var("DEFAULT_REFRESH_TTL_MINS", "525600"); // 1 year in minutes
-            
+
             let config = Config::from_env().unwrap();
             assert_eq!(config.app_port, 65535);
             assert_eq!(config.default_access_ttl_secs, 86400);
             assert_eq!(config.default_refresh_ttl_mins, 525600);
-            
+
             // Test very long but valid values
             let long_domain = format!(".{}.com", "a".repeat(240)); // Near DNS limit
             env::set_var("COOKIE_DOMAIN", &long_domain);
             let config = Config::from_env().unwrap();
             assert_eq!(config.cookie_domain, long_domain);
-            
+
             // Test very long session secret
             let long_secret = "a".repeat(1000);
             env::set_var("SESSION_SECRET", &long_secret);

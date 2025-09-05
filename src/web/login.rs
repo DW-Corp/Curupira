@@ -1,7 +1,7 @@
 // [business] Import application modules for login functionality
 use crate::{
     // config::Config,                      // [business] Application configuration - Unused import removed
-    db::{models::*, queries, Database},  // [business] Database entities and operations
+    db::{models::*, queries, Database}, // [business] Database entities and operations
     security::password::verify_password, // [security] Password verification using Argon2id
 };
 
@@ -9,7 +9,7 @@ use crate::{
 use axum::{
     extract::{Query, State}, // [library] Extract query parameters and application state
     http::StatusCode,        // [library] HTTP status codes
-    response::Html, // [library] HTTP response types (Redirect unused, removed)
+    response::Html,          // [library] HTTP response types (Redirect unused, removed)
     Form,                    // [library] HTML form data extraction
 };
 

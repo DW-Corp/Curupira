@@ -8,9 +8,9 @@ use crate::{
 // [library] Axum web framework components for HTTP handling
 use axum::{
     extract::{Query, State}, // [library] Request parameter extraction and application state
-    http::StatusCode, // [library] HTTP status codes (Uri import removed as unused)
-    response::Html, // [library] HTTP response types (Redirect import removed as unused)
-    // Extension,               // [library] Request extensions (middleware data) - Unused import removed
+    http::StatusCode,        // [library] HTTP status codes (Uri import removed as unused)
+    response::Html,          // [library] HTTP response types (Redirect import removed as unused)
+                             // Extension,               // [library] Request extensions (middleware data) - Unused import removed
 };
 
 // [library] Base64 encoding for PKCE parameter handling (imports removed as unused)
@@ -78,7 +78,7 @@ pub struct ConsentPageData {
 pub async fn authorize_handler(
     Query(params): Query<AuthorizeParams>, // [library] Extract query parameters from URL
     State(db): State<Database>,            // [library] Inject database connection pool
-    State(_config): State<Config>,          // [library] Inject application configuration
+    State(_config): State<Config>,         // [library] Inject application configuration
     cookies: Cookies, // [library] Access to HTTP cookies for session management
 ) -> Result<Html<String>, (StatusCode, Html<String>)> {
     // [rust] Result type for error handling
@@ -536,11 +536,11 @@ mod tests {
 
         // Test invalid PKCE challenge lengths
         let invalid_challenges = vec![
-            "".to_string(),                    // Empty
-            "short".to_string(),               // Too short
-            "a".repeat(42),                    // Just under minimum
-            "a".repeat(129),                   // Just over maximum
-            "a".repeat(200),                   // Way too long
+            "".to_string(),      // Empty
+            "short".to_string(), // Too short
+            "a".repeat(42),      // Just under minimum
+            "a".repeat(129),     // Just over maximum
+            "a".repeat(200),     // Way too long
         ];
         for challenge in invalid_challenges {
             let mut params = base_params.clone();
@@ -582,7 +582,8 @@ mod tests {
 
         // Check that all parameters are preserved (adjust URL encoding expectations)
         assert!(query_string.contains("client_id=550e8400-e29b-41d4-a716-446655440000"));
-        assert!(query_string.contains("redirect_uri=https%3A%2F%2Fexample.com%2Fcallback%3Fexisting%3Dparam"));
+        assert!(query_string
+            .contains("redirect_uri=https%3A%2F%2Fexample.com%2Fcallback%3Fexisting%3Dparam"));
         assert!(query_string.contains("response_type=code"));
         assert!(query_string.contains("scope=openid%20email%20profile"));
         assert!(query_string.contains("state=csrf-protection-state"));
@@ -611,7 +612,7 @@ mod tests {
         assert!(minimal_query.contains("scope=openid"));
         assert!(minimal_query.contains("code_challenge="));
         assert!(minimal_query.contains("code_challenge_method=S256"));
-        
+
         // Should not contain optional parameters when None
         assert!(!minimal_query.contains("state="));
         assert!(!minimal_query.contains("nonce="));
@@ -639,7 +640,7 @@ mod tests {
         // Test error response with state parameter
         let (_, response) = create_error_response(
             "https://example.com/callback",
-            "unauthorized_client", 
+            "unauthorized_client",
             "Client not authorized",
             Some("csrf-state-123"),
         );
@@ -665,12 +666,16 @@ mod tests {
         assert!(html.contains("state=state%20with%20spaces"));
     }
 
-    #[test] 
+    #[test]
     fn test_consent_page_data_serialization() {
         let consent_data = ConsentPageData {
             app_name: "Test Application".to_string(),
             tenant_name: "Test Tenant".to_string(),
-            scopes: vec!["openid".to_string(), "email".to_string(), "profile".to_string()],
+            scopes: vec![
+                "openid".to_string(),
+                "email".to_string(),
+                "profile".to_string(),
+            ],
             client_id: "550e8400-e29b-41d4-a716-446655440000".to_string(),
             redirect_uri: "https://example.com/callback".to_string(),
             state: Some("csrf-token".to_string()),
@@ -686,8 +691,8 @@ mod tests {
         assert!(html.contains("Test Application"));
         assert!(html.contains("Test Tenant"));
         assert!(html.contains("Identity information")); // openid scope
-        assert!(html.contains("Email address"));        // email scope  
-        assert!(html.contains("Profile information"));  // profile scope
+        assert!(html.contains("Email address")); // email scope
+        assert!(html.contains("Profile information")); // profile scope
         assert!(html.contains("550e8400-e29b-41d4-a716-446655440000"));
         assert!(html.contains("https://example.com/callback"));
         assert!(html.contains("csrf-token"));
@@ -699,7 +704,7 @@ mod tests {
         // Test with empty optional fields
         let minimal_data = ConsentPageData {
             app_name: "Minimal App".to_string(),
-            tenant_name: "Minimal Tenant".to_string(), 
+            tenant_name: "Minimal Tenant".to_string(),
             scopes: vec!["openid".to_string()],
             client_id: Uuid::new_v4().to_string(),
             redirect_uri: "https://minimal.com/callback".to_string(),

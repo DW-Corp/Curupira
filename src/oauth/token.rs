@@ -524,41 +524,44 @@ mod tests {
 
         // Test Authorization with different formats
         headers.clear();
-        
+
         // Should not match Bearer tokens
         headers.insert(
-            "authorization", 
-            HeaderValue::from_static("Bearer some-jwt-token")
+            "authorization",
+            HeaderValue::from_static("Bearer some-jwt-token"),
         );
         assert!(extract_api_key(&headers).is_err());
 
         // Should not match Basic auth
         headers.insert(
             "authorization",
-            HeaderValue::from_static("Basic dXNlcjpwYXNz")
+            HeaderValue::from_static("Basic dXNlcjpwYXNz"),
         );
         assert!(extract_api_key(&headers).is_err());
 
         // Test malformed Authorization header
         headers.insert(
             "authorization",
-            HeaderValue::from_static("API-Key")  // Missing space and key
+            HeaderValue::from_static("API-Key"), // Missing space and key
         );
         assert!(extract_api_key(&headers).is_err());
 
         // Test empty API key
         headers.insert(
-            "authorization", 
-            HeaderValue::from_static("API-Key ")  // Empty key after space
+            "authorization",
+            HeaderValue::from_static("API-Key "), // Empty key after space
         );
         assert_eq!(extract_api_key(&headers).unwrap(), "");
 
         // Test with whitespace around key
         headers.insert(
             "x-api-key",
-            HeaderValue::from_static("  test-key-with-spaces  ")
+            HeaderValue::from_static("  test-key-with-spaces  "),
         );
-        assert_eq!(extract_api_key(&headers).unwrap(), "  test-key-with-spaces  ");
+        assert_eq!(
+            extract_api_key(&headers).unwrap(),
+            "  test-key-with-spaces  "
+        );
     }
 
     #[test]
@@ -596,7 +599,7 @@ mod tests {
         // Test unsupported grant types
         let unsupported_grant_types = vec![
             "client_credentials",
-            "password", 
+            "password",
             "implicit",
             "device_code",
             "urn:ietf:params:oauth:grant-type:jwt-bearer",
@@ -613,7 +616,7 @@ mod tests {
                 code_verifier: None,
                 refresh_token: None,
             };
-            
+
             // These would be rejected by the actual handler
             assert_ne!(request.grant_type, "authorization_code");
             assert_ne!(request.grant_type, "refresh_token");
@@ -653,7 +656,7 @@ mod tests {
         };
         assert!(missing_code_verifier.code_verifier.is_none());
 
-        // Test missing required fields for refresh_token grant  
+        // Test missing required fields for refresh_token grant
         let missing_refresh_token = TokenRequest {
             grant_type: "refresh_token".to_string(),
             code: None,
@@ -674,23 +677,18 @@ mod tests {
             code_verifier: Some(long_string.clone()),
             refresh_token: Some(long_string),
         };
-        
+
         assert_eq!(extreme_request.grant_type.len(), 10000);
         assert!(extreme_request.code.as_ref().unwrap().len() == 10000);
         assert!(extreme_request.code_verifier.as_ref().unwrap().len() == 10000);
     }
 
-    #[test] 
+    #[test]
     fn test_api_key_header_variations() {
         let mut headers = HeaderMap::new();
 
         // Test various header name capitalizations
-        let header_variants = vec![
-            "x-api-key",
-            "X-API-KEY", 
-            "X-Api-Key",
-            "x-API-key",
-        ];
+        let header_variants = vec!["x-api-key", "X-API-KEY", "X-Api-Key", "x-API-key"];
 
         for header_name in header_variants {
             headers.clear();
@@ -702,7 +700,7 @@ mod tests {
         let auth_variants = vec![
             "API-Key test-key",
             "API-Key test-key-with-dashes",
-            "API-Key test_key_with_underscores", 
+            "API-Key test_key_with_underscores",
             "API-Key 123456789",
             "API-Key abcdef-123456-ghijkl",
         ];
@@ -716,39 +714,52 @@ mod tests {
 
         // Test invalid Authorization formats that should fail
         let invalid_auth_formats = vec![
-            "APIKey test-key",    // Missing hyphen
-            "API-key test-key",   // Wrong case
-            "api-key test-key",   // Wrong case
-            "API Key test-key",   // Space instead of hyphen
-            "Bearer test-key",    // Wrong scheme
-            "Basic test-key",     // Wrong scheme
-            "test-key",           // No scheme
-            "",                   // Empty
+            "APIKey test-key",  // Missing hyphen
+            "API-key test-key", // Wrong case
+            "api-key test-key", // Wrong case
+            "API Key test-key", // Space instead of hyphen
+            "Bearer test-key",  // Wrong scheme
+            "Basic test-key",   // Wrong scheme
+            "test-key",         // No scheme
+            "",                 // Empty
         ];
 
         for invalid_auth in invalid_auth_formats {
-            headers.clear(); 
-            headers.insert("authorization", HeaderValue::from_str(invalid_auth).unwrap());
-            assert!(extract_api_key(&headers).is_err(), "Should reject: {}", invalid_auth);
+            headers.clear();
+            headers.insert(
+                "authorization",
+                HeaderValue::from_str(invalid_auth).unwrap(),
+            );
+            assert!(
+                extract_api_key(&headers).is_err(),
+                "Should reject: {}",
+                invalid_auth
+            );
         }
     }
 
     #[test]
     fn test_header_precedence() {
         let mut headers = HeaderMap::new();
-        
+
         // When both X-API-Key and Authorization headers are present,
         // X-API-Key should take precedence
         headers.insert("x-api-key", HeaderValue::from_static("x-api-key-value"));
-        headers.insert("authorization", HeaderValue::from_static("API-Key auth-header-value"));
-        
+        headers.insert(
+            "authorization",
+            HeaderValue::from_static("API-Key auth-header-value"),
+        );
+
         assert_eq!(extract_api_key(&headers).unwrap(), "x-api-key-value");
-        
+
         // Test that X-API-Key is preferred even when Authorization comes first
         headers.clear();
-        headers.insert("authorization", HeaderValue::from_static("API-Key auth-first"));
+        headers.insert(
+            "authorization",
+            HeaderValue::from_static("API-Key auth-first"),
+        );
         headers.insert("x-api-key", HeaderValue::from_static("x-api-key-second"));
-        
+
         assert_eq!(extract_api_key(&headers).unwrap(), "x-api-key-second");
     }
 }
