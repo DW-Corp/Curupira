@@ -87,9 +87,7 @@ pub async fn authorize_handler(
 
     // [security] Step 1: Validate request parameters according to OAuth2 specification
     // Ensures request is well-formed and uses secure parameters before proceeding
-    if let Err(error_response) = validate_authorize_params(&params) {
-        return Err(error_response); // [rust] Early return on validation failure
-    }
+    validate_authorize_params(&params)?;
 
     // [business] Step 2: Load and validate the OAuth2 application from database
     // Ensures the client_id exists and is registered in our system
@@ -237,7 +235,7 @@ fn validate_authorize_params(params: &AuthorizeParams) -> Result<(), (StatusCode
 
     // [security] Validate PKCE code challenge format and length
     // Must be base64url-encoded SHA256 hash (43-128 characters)
-    if let Err(_) = validate_code_challenge(&params.code_challenge) {
+    if validate_code_challenge(&params.code_challenge).is_err() {
         return Err((
             StatusCode::BAD_REQUEST,
             Html("Invalid code_challenge format.".to_string()),

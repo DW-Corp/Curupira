@@ -52,7 +52,7 @@ pub fn create_code_challenge(code_verifier: &str) -> Result<String, PkceError> {
 /// Validate that a code verifier meets PKCE requirements
 pub fn validate_code_verifier(code_verifier: &str) -> Result<(), PkceError> {
     let len = code_verifier.len();
-    if len < 43 || len > 128 {
+    if !(43..=128).contains(&len) {
         return Err(PkceError::InvalidVerifierLength(len));
     }
 
@@ -70,7 +70,7 @@ pub fn validate_code_verifier(code_verifier: &str) -> Result<(), PkceError> {
 /// Validate that a code challenge meets PKCE requirements  
 pub fn validate_code_challenge(code_challenge: &str) -> Result<(), PkceError> {
     let len = code_challenge.len();
-    if len < 43 || len > 128 {
+    if !(43..=128).contains(&len) {
         return Err(PkceError::InvalidChallengeLength(len));
     }
 

@@ -160,7 +160,7 @@ impl JwtSigner {
         // [security] Create JWT header with cryptographic algorithm and key identifier
         let mut header = JwsHeader::new();
         header.set_algorithm("RS256"); // [security] RSA signature with SHA-256 hash
-        header.set_key_id(&app.jwk_kid.to_string()); // [security] Key ID for key rotation support
+        header.set_key_id(app.jwk_kid.to_string()); // [security] Key ID for key rotation support
 
         // [library] Convert claims struct to JWT payload format
         let payload_json = serde_json::to_value(claims)?; // [library] Serialize to JSON Value
